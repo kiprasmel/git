@@ -2378,6 +2378,7 @@ static int do_pick_commit(struct repository *r,
 	if ((command == TODO_PICK || command == TODO_REWORD ||
 	     command == TODO_EDIT) && !opts->no_commit &&
 	    (res == 0 || res == 1) &&
+		// FOLLOW THIS EXAMPLE?
 	    update_ref(NULL, "CHERRY_PICK_HEAD", &commit->object.oid, NULL,
 		       REF_NO_DEREF, UPDATE_REFS_MSG_ON_ERR))
 		res = -1;
@@ -3111,9 +3112,13 @@ int write_basic_state(struct replay_opts *opts, const char *head_name,
 {
 	if (head_name)
 		write_file(rebase_path_head_name(), "%s\n", head_name);
-	if (onto)
+	if (onto) {
 		write_file(rebase_path_onto(), "%s\n",
 			   oid_to_hex(&onto->object.oid));
+
+		update_ref("rebase", "NEWBASE", &onto->object.oid, NULL,
+			   0, UPDATE_REFS_MSG_ON_ERR);
+	}
 	if (orig_head)
 		write_file(rebase_path_orig_head(), "%s\n",
 			   oid_to_hex(orig_head));

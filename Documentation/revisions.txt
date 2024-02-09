@@ -64,6 +64,9 @@ characters and to avoid word splitting.
     during a rebase, records the commit at which the operation is
     currently stopped, either because of conflicts or an `edit` command in
     an interactive rebase.
+  `NEWBASE`:::
+    records the commit which you based your rebase onto. useful with
+    linkgit:git-range-diff[7] to review changes introduced in rebase.
   `REVERT_HEAD`:::
     records the commit which you are reverting when you run `git revert`.
   `CHERRY_PICK_HEAD`:::

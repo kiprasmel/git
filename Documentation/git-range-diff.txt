@@ -138,9 +138,21 @@ When a rebase required merge conflicts to be resolved, compare the changes
 introduced by the rebase directly afterwards using:
 
 ------------
-$ git range-diff @{u} @{1} @
+$ git range-diff NEWBASE @{1} @
 ------------
 
+NEWBASE refers to .git/NEWBASE, which got created at the start of the rebase.
+@{1} is your branch before the rebase.
+@ is HEAD, i.e. your branch after the rebase.
+
+as per linkgit:gitrevisions[7], the arguments expand into 2 ranges:
+NEWBASE..@{1}
+NEWBASE..@
+
+which reads ""
+
+TODO: what if an actual --onto was specified as different - would this range-diff still work?
+or do we need git merge-base --fork-point?
 
 A typical output of `git range-diff` would look like this:
 
