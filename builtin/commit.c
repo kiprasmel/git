@@ -888,6 +888,7 @@ static int prepare_to_commit(const char *index_file, const char *prefix,
 	 */
 	s->hints = 0;
 
+	// cleanup
 	if (clean_message_contents)
 		strbuf_stripspace(&sb, '\0');
 
@@ -1262,6 +1263,7 @@ static int parse_and_validate_options(int argc, const char *argv[],
 				      struct commit *current_head,
 				      struct wt_status *s)
 {
+	struct strbuf sb = STRBUF_INIT;
 	argc = parse_options(argc, argv, prefix, options, usage, 0);
 	finalize_deferred_config(s);
 
@@ -1271,6 +1273,7 @@ static int parse_and_validate_options(int argc, const char *argv[],
 	if (force_author && renew_authorship)
 		die(_("options '%s' and '%s' cannot be used together"), "--reset-author", "--author");
 
+	// HERE CONFLICT, edit_message would be more fitting (and only gets assigned later so)
 	if (logfile || have_option_m || use_message)
 		use_editor = 0;
 
@@ -1305,10 +1308,33 @@ static int parse_and_validate_options(int argc, const char *argv[],
 	    !is_from_rebase(whence) && renew_authorship)
 		die(_("--reset-author can be used only with -C, -c or --amend."));
 	if (use_message) {
-		use_message_buffer = read_commit_message(use_message);
-		if (!renew_authorship) {
-			author_message = use_message;
-			author_message_buffer = use_message_buffer;
+		if (!strcmp(use_message, "")) {
+			if (file_exists(git_path_commit_editmsg())) {
+				// TODO LATER: make optional
+
+				use_message = xstrdup(git_path_commit_editmsg());
+
+				// add fake sha & 2 newlines to match expected format of commit message
+				strbuf_add(&sb, "0000000000000000000000000000000000000000\n\n", 42);
+
+				if (strbuf_read_file(&sb, use_message, 0) < 0)
+					die_errno(_("could not read reusable message"));
+
+				// remove comments, etc
+				cleanup_message(&sb, COMMIT_MSG_CLEANUP_ALL, 0);
+
+				use_message_buffer = xstrdup(sb.buf);
+				strbuf_release(&sb);
+			} else {
+				use_message_buffer = "";
+			}
+		} else {
+			use_message_buffer = read_commit_message(use_message);
+
+			if (!renew_authorship) {
+				author_message = use_message;
+				author_message_buffer = use_message_buffer;
+			}
 		}
 	}
 	if ((is_from_cherry_pick(whence) || whence == FROM_REBASE_PICK) &&
@@ -1640,7 +1666,10 @@ int cmd_commit(int argc, const char **argv, const char *prefix)
 		OPT_STRING(0, "author", &force_author, N_("author"), N_("override author for commit")),
 		OPT_STRING(0, "date", &force_date, N_("date"), N_("override date for commit")),
 		OPT_CALLBACK('m', "message", &message, N_("message"), N_("commit message"), opt_parse_m),
-		OPT_STRING('c', "reedit-message", &edit_message, N_("commit"), N_("reuse and edit message from specified commit")),
+		// OPT_STRING('c', "reedit-message", &edit_message, N_("commit"), N_("reuse and edit message from specified commit")),
+		{ OPTION_STRING, 'c', "reedit-message", &edit_message, N_("commit"),
+			N_("reuse and edit previously uncommitted message, or message from specified commit"),
+			PARSE_OPT_OPTARG, NULL, (intptr_t) "" },
 		OPT_STRING('C', "reuse-message", &use_message, N_("commit"), N_("reuse message from specified commit")),
 		/*
 		 * TRANSLATORS: Leave "[(amend|reword):]" as-is,
@@ -1736,6 +1765,7 @@ int cmd_commit(int argc, const char **argv, const char *prefix)
 
 	/* Set up everything for writing the commit object.  This includes
 	   running hooks, writing the trees, and interacting with the user.  */
+	// prep
 	if (!prepare_to_commit(index_file, prefix,
 			       current_head, &s, &author_ident)) {
 		ret = 1;
@@ -1792,6 +1822,7 @@ int cmd_commit(int argc, const char **argv, const char *prefix)
 
 	/* Finally, get the commit message */
 	strbuf_reset(&sb);
+	// reads commit msg
 	if (strbuf_read_file(&sb, git_path_commit_editmsg(), 0) < 0) {
 		int saved_errno = errno;
 		rollback_index_files();
@@ -1832,6 +1863,7 @@ int cmd_commit(int argc, const char **argv, const char *prefix)
 		append_merge_tag_headers(parents, &tail);
 	}
 
+	// commit the commit!
 	if (commit_tree_extended(sb.buf, sb.len, &the_index.cache_tree->oid,
 				 parents, &oid, author_ident.buf, NULL,
 				 sign_commit, extra)) {
@@ -1851,6 +1883,7 @@ int cmd_commit(int argc, const char **argv, const char *prefix)
 	unlink(git_path_merge_msg(the_repository));
 	unlink(git_path_merge_mode(the_repository));
 	unlink(git_path_squash_msg(the_repository));
+	unlink(git_path_commit_editmsg());
 
 	if (commit_index_files())
 		die(_("repository has been updated, but unable to write\n"
