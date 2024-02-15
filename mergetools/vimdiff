@@ -371,9 +371,11 @@ diff_cmd_help () {
 
 
 merge_cmd () {
-	layout=$(git config mergetool.vimdiff.layout)
+	TOOL=$1
 
-	case "$1" in
+	layout=$(git config mergetool.$TOOL.layout)
+
+	case "$TOOL" in
 	*vimdiff)
 		if test -z "$layout"
 		then
