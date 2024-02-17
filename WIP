@@ -1,0 +1,21 @@
+Documentation/Makefile:
+all: html man
+
+Documentation/mergetools-diff.txt:
+Documentation/mergetools-merge.txt:
+
+gets dynamically generated via `show_tool_help`
+includes full info (both mergetool command and its explanation).
+
+investigating commit:
+7b5cf8be180940ce099c8413d02fb5707d900708
+
+Documentation/config.txt:
+gets generated via includes.
+does NOT have the full info of the tool (only the name).
+check in https://git-scm.com/docs/git-config
+though, if compiled locally, which generates html,
+but different from the website, then DOES have the full info.
+
+Documentation/git-config.1
+DOES have the full info
