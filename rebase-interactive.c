@@ -132,6 +132,12 @@ int edit_todo_list(struct repository *r, struct replay_opts *opts,
 				    (flags | TODO_LIST_APPEND_TODO_HELP) & ~TODO_LIST_SHORTEN_IDS) < 0)
 		return error(_("could not write '%s'."), rebase_path_todo_backup());
 
+	if (opts->pause && initial) {
+		fprintf(stdout, "%s\n", todo_file);
+		write_file(rebase_path_dropped(), "%s", "");
+		return -5;
+	}
+
 	if (launch_sequence_editor(todo_file, &new_todo->buf, NULL))
 		return -2;
 

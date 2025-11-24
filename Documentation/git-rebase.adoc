@@ -12,7 +12,7 @@ SYNOPSIS
 	[--onto <newbase> | --keep-base] [<upstream> [<branch>]]
 'git rebase' [-i | --interactive] [<options>] [--exec <cmd>] [--onto <newbase>]
 	--root [<branch>]
-'git rebase' (--continue|--skip|--abort|--quit|--edit-todo|--show-current-patch)
+'git rebase' (--continue|--skip|--abort|--quit|--pause|--edit-todo|--show-current-patch)
 
 DESCRIPTION
 -----------
@@ -197,6 +197,19 @@ including not with each other:
 	original branch. The index and working tree are also left
 	unchanged as a result. If a temporary stash entry was created
 	using `--autostash`, it will be saved to the stash list.
+
+--pause::
+	Prepare an interactive rebase but pause before starting execution,
+	allowing manual editing of the todo list. After `git rebase --pause`
+	completes, the rebase state is initialized with a todo list ready
+	for editing. The path to the todo file is printed to stdout.
+	After editing, use `git rebase --continue` to start the rebase.
++
+This option implies `--interactive` and is useful for a controlled manipulation
+of the rebase todo list, such as reordering commits or changing rebase commands
+before execution begins. It's an alternative to setting the GIT_SEQUENCE_EDITOR
+or EDITOR environment variable to (a path to) a custom script that would edit
+the git-rebase-todo file.
 
 --edit-todo::
 	Edit the todo list during an interactive rebase.

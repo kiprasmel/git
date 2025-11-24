@@ -2313,6 +2313,47 @@ test_expect_success 'non-merge commands reject merge commits' '
 	test_cmp expect actual
 '
 
+test_expect_success 'rebase --pause prepares todo list without launching editor' '
+	git checkout branch1 &&
+	GIT_SEQUENCE_EDITOR="echo EDITOR_LAUNCHED >&2" \
+		git rebase --pause primary >actual 2>err &&
+	echo ".git/rebase-merge/git-rebase-todo" >expect &&
+	test_cmp expect actual &&
+	test_path_is_file .git/rebase-merge/git-rebase-todo &&
+	test_must_be_empty err &&
+	git rebase --abort
+'
+
+test_expect_success 'rebase --pause allows manual todo editing and continuation' '
+	git checkout branch2 &&
+	git rebase --pause primary >actual &&
+	echo ".git/rebase-merge/git-rebase-todo" >expect &&
+	test_cmp expect actual &&
+	test_path_is_file .git/rebase-merge/git-rebase-todo &&
+	grep "^pick .* I$" .git/rebase-merge/git-rebase-todo &&
+	git rebase --continue &&
+	git log --oneline primary..HEAD >log &&
+	grep "I" log
+'
+
+test_expect_success 'rebase --pause incompatible with action options' '
+	test_must_fail git rebase --pause --continue 2>err &&
+	grep "cannot be used together" err &&
+	test_must_fail git rebase --pause --skip 2>err &&
+	grep "cannot be used together" err &&
+	test_must_fail git rebase --pause --edit-todo 2>err &&
+	grep "cannot be used together" err
+'
+
+test_expect_success 'rebase --pause cannot be used when rebase in progress' '
+	git checkout branch1 &&
+	git rebase --pause primary >output &&
+	test_path_is_file .git/rebase-merge/git-rebase-todo &&
+	test_must_fail git rebase --pause primary 2>err &&
+	grep "already in progress" err &&
+	git rebase --abort
+'
+
 # This must be the last test in this file
 test_expect_success '$EDITOR and friends are unchanged' '
 	test_editor_unchanged

@@ -5417,6 +5417,12 @@ int sequencer_continue(struct repository *r, struct replay_opts *opts)
 			unlink(rebase_path_dropped());
 		}
 
+		/*
+		 * Filter update-refs to match what's in the todo list,
+		 * in case manual editing affected update-ref commands.
+		 */
+		todo_list_filter_update_refs(r, &todo_list);
+
 		if (commit_staged_changes(r, opts, &todo_list)) {
 			res = -1;
 			goto release_todo_list;
@@ -6511,6 +6517,9 @@ int complete_action(struct repository *r, struct replay_opts *opts, unsigned fla
 		todo_list_release(&new_todo);
 
 		return -1;
+	} else if (res == -5) {
+		todo_list_release(&new_todo);
+		return 0;
 	}
 
 	/* Expand the commit IDs */

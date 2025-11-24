@@ -133,6 +133,7 @@ struct rebase_options {
 	int config_autosquash;
 	int config_rebase_merges;
 	int config_update_refs;
+	int pause;
 };
 
 #define REBASE_OPTIONS_INIT {			  	\
@@ -190,6 +191,7 @@ static struct replay_opts get_replay_opts(const struct rebase_options *opts)
 	replay.committer_date_is_author_date =
 					opts->committer_date_is_author_date;
 	replay.ignore_date = opts->ignore_date;
+	replay.pause = opts->pause;
 	free(replay.gpg_sign);
 	replay.gpg_sign = xstrdup_or_null(opts->gpg_sign_opt);
 	replay.reflog_action = xstrdup(opts->reflog_action);
@@ -1194,6 +1196,8 @@ int cmd_rebase(int argc,
 		OPT_BOOL(0, "autosquash", &options.autosquash,
 			 N_("move commits that begin with "
 			    "squash!/fixup! under -i")),
+		OPT_BOOL(0, "pause", &options.pause,
+			 N_("pause before starting rebase to allow manual todo editing")),
 		OPT_BOOL(0, "update-refs", &options.update_refs,
 			 N_("update branches that point to commits "
 			    "that are being rebased")),
@@ -1316,6 +1320,9 @@ int cmd_rebase(int argc,
 
 	if (options.action != ACTION_NONE && !in_progress)
 		die(_("no rebase in progress"));
+
+	if (options.pause && in_progress)
+		die(_("cannot use --pause when rebase is already in progress"));
 
 	if (options.action == ACTION_EDIT_TODO && !is_merge(&options))
 		die(_("The --edit-todo action can only be used during "
@@ -1581,6 +1588,9 @@ int cmd_rebase(int argc,
 			options.config_autosquash &&
 			(options.flags & REBASE_INTERACTIVE_EXPLICIT);
 	}
+
+	if (options.pause)
+		imply_merge(&options, "--pause");
 
 	if (options.type == REBASE_UNSPECIFIED) {
 		if (!strcmp(options.default_backend, "merge"))
